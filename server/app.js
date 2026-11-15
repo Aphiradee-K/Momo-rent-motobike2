@@ -7,7 +7,10 @@ const { attachUser } = require("./auth");
 
 const app = express();
 const PUBLIC_DIR = path.resolve(process.cwd(), "public");
-const UPLOAD_DIR = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "public/uploads");
+const UPLOAD_DIR = path.resolve(
+  process.cwd(),
+  process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "public/uploads")
+);
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "2mb" }));

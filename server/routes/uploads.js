@@ -7,7 +7,10 @@ const crypto = require("node:crypto");
 const router = express.Router();
 
 // On Vercel the project folder is read-only; set UPLOAD_DIR=/tmp/uploads there.
-const uploadsDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "public/uploads");
+const uploadsDir = path.resolve(
+  process.cwd(),
+  process.env.UPLOAD_DIR || (process.env.VERCEL ? "/tmp/uploads" : "public/uploads")
+);
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({

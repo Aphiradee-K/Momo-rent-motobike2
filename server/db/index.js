@@ -7,7 +7,10 @@ require("dotenv").config();
 const seedBikes = require("./bikes");
 const demoRevenue = require("./demoRevenue");
 
-const dbFile = path.resolve(process.cwd(), process.env.DB_FILE || "data/momo.db");
+const dbFile = path.resolve(
+  process.cwd(),
+  process.env.DB_FILE || (process.env.VERCEL ? "/tmp/momo.db" : "data/momo.db")
+);
 fs.mkdirSync(path.dirname(dbFile), { recursive: true });
 
 const db = new DatabaseSync(dbFile);
