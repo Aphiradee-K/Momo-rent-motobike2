@@ -11,7 +11,7 @@
     "reset-db": "node server/db/reset.js"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": "24.x"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

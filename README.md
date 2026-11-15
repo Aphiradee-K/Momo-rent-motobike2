@@ -204,6 +204,38 @@ momomo/
 
 ---
 
+## ☁️ Deploy
+
+### GitHub
+```bash
+git add -A
+git commit -m "MOMO TRAVEL full-stack"
+git push origin master
+```
+
+### Vercel
+โปรเจกต์นี้มีไฟล์พร้อม deploy แล้ว:
+- `api/index.js` — entry point สำหรับ Vercel Serverless Function
+- `vercel.json` — rewrite ทุก request เข้า Express + ตั้ง `DB_FILE=/tmp/momo.db` และ `UPLOAD_DIR=/tmp/uploads`
+- `server/index.js` จะ `listen` เฉพาะตอนรัน `npm start` (ไม่ listen บน Vercel)
+
+ขั้นตอน:
+```bash
+npm i -g vercel
+vercel login
+vercel --prod
+```
+
+หรือ import repo จาก GitHub ที่ [vercel.com/new](https://vercel.com/new) แล้วตั้ง Environment Variable:
+| ตัวแปร | ค่า |
+|--------|-----|
+| `JWT_SECRET` | สุ่มสตริงยาว ๆ (จำเป็น) |
+
+> **ข้อจำกัดสำคัญบน Vercel:** ระบบไฟล์ของ Serverless เป็นแบบชั่วคราว
+> ฐานข้อมูล SQLite (`/tmp/momo.db`) และรูปที่อัปโหลด (`/tmp/uploads`) จะถูกรีเซ็ตเมื่อ instance ใหม่ถูกสร้าง
+> จึงเหมาะสำหรับ **เดโม/พรีวิว** เท่านั้น ถ้าต้องการข้อมูลถาวรควรใช้ Postgres (Neon/Supabase) + Blob storage
+> หรือ deploy บน Railway/Render/Fly.io ที่มี persistent disk
+
 ## 📝 Credit
 
 ดีไซน์และเนื้อหาภาษาไทยต้นฉบับจาก
