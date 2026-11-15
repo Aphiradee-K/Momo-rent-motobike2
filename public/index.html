@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="MOMO TRAVEL — เช่ารถมอเตอร์ไซค์ออนไลน์ จองง่าย รับรถได้ทันที พร้อมหมวกกันน็อกฟรี">
+<title>MOMO TRAVEL — เช่ารถมอเตอร์ไซค์กับโมโมะ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏍️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="top-progress" id="topProgress"></div>
+
+<!-- ================= LOGIN / REGISTER ================= -->
+<div id="authView">
+  <div class="auth-card">
+    <div class="auth-logo"><span class="a">🏍️ MOMO</span><span class="b">TRAVEL</span></div>
+    <div class="auth-sub">เช่ารถมอเตอร์ไซค์ออนไลน์กับโมโมะ</div>
+
+    <div class="auth-tabs">
+      <button type="button" id="tabLogin" class="active" onclick="switchAuth('login')">เข้าสู่ระบบ</button>
+      <button type="button" id="tabReg" onclick="switchAuth('register')">สมัครสมาชิก</button>
+    </div>
+
+    <form id="formLogin" onsubmit="doLogin(event)">
+      <div class="auth-error" id="loginError"></div>
+      <div class="field">
+        <label for="liEmail">อีเมล</label>
+        <input type="email" id="liEmail" placeholder="you@email.com" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="liPass">รหัสผ่าน</label>
+        <input type="password" id="liPass" placeholder="••••••" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-full" id="loginBtn">เข้าสู่ระบบ →</button>
+    </form>
+
+    <form id="formReg" style="display:none" onsubmit="doRegister(event)">
+      <div class="auth-error" id="regError"></div>
+      <div class="form-row">
+        <div class="field">
+          <label for="rgFirstName">ชื่อจริง *</label>
+          <input type="text" id="rgFirstName" placeholder="เช่น สมชาย" required>
+        </div>
+        <div class="field">
+          <label for="rgLastName">นามสกุล *</label>
+          <input type="text" id="rgLastName" placeholder="เช่น ใจดี" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="rgEmail">อีเมล *</label>
+        <input type="email" id="rgEmail" placeholder="you@email.com" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="rgPass">รหัสผ่าน (อย่างน้อย 4 ตัว) *</label>
+        <input type="password" id="rgPass" minlength="4" placeholder="••••••" autocomplete="new-password" required>
+      </div>
+      <div class="field">
+        <label for="rgAddress">ที่อยู่ *</label>
+        <input type="text" id="rgAddress" placeholder="เช่น 123 ถ.สุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110" required>
+      </div>
+      <div class="field">
+        <label for="rgPhone">เบอร์โทรศัพท์ *</label>
+        <input type="tel" id="rgPhone" placeholder="เช่น 081-234-5678" required>
+      </div>
+      <div class="field">
+        <label>หลักฐานสำคัญ (บัตรประชาชน หรือ พาสปอร์ต)</label>
+        <div class="upload-area">
+          <input type="file" id="rgIdCard" accept="image/*" aria-label="อัพโหลดรูปบัตรประชาชนหรือพาสปอร์ต" onchange="handleRegIdUpload(event)" style="display:none">
+          <div class="upload-box" onclick="document.getElementById('rgIdCard').click()">
+            <div class="upload-icon" id="regUploadIcon">📤</div>
+            <div class="upload-text" id="regUploadText">คลิกเพื่ออัพรูปบัตรประชาชน หรือ พาสปอร์ต</div>
+            <div class="upload-hint">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 5MB</div>
+          </div>
+          <div class="upload-preview" id="regUploadPreview" style="display:none">
+            <img id="regPreviewImg" src="" alt="หลักฐาน">
+            <button type="button" class="remove-img-btn" onclick="removeRegIdImage()">✕ ลบรูป</button>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn-full" id="registerBtn">สมัครสมาชิก 🎉</button>
+    </form>
+
+    <div class="demo-hint">
+      🔑 <b>บัญชีทดลอง</b><br>
+      ลูกค้า — <b>customer@test.com / 1234</b><br>
+      พนักงาน — <b>staff@momo.com / staff123</b>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="appView" style="display:none">
+
+<nav>
+  <div class="logo">🏍️ MOMO<span>TRAVEL</span></div>
+  <button type="button" class="nav-toggle" id="navToggle" onclick="toggleNav()" aria-label="เปิดเมนู">☰</button>
+  <ul id="mainNav">
+    <li id="navBikes" class="hide-m"><a onclick="showSection('bikes')">รถของเรา</a></li>
+    <li id="navMyBookings" class="hide-m"><a onclick="showSection('bookings')">การจองของฉัน</a></li>
+    <li id="navProfile" class="hide-m"><a onclick="showSection('profile')">👤 โปรไฟล์</a></li>
+    <li id="navChat" class="hide-m"><a onclick="showSection('chat')">💬 แชท <span class="chat-badge" id="chatBadge" style="display:none">0</span></a></li>
+    <li id="navNotifications" class="hide-m"><a onclick="showSection('notifications')">🔔 แจ้งเตือน <span class="notify-badge" id="notifyBadge" style="display:none">0</span></a></li>
+    <li id="navManage" style="display:none"><a onclick="showSection('manage')">🗂️ จัดการการจอง</a></li>
+    <li id="navRevenue" style="display:none"><a onclick="showSection('revenue')">📊 สรุปรายได้</a></li>
+    <li id="navStaffBikes" style="display:none"><a onclick="showSection('staffBikes')">🏍️ รถของเรา</a></li>
+    <li id="navStaffChat" style="display:none"><a onclick="showSection('staffChat')">💬 แชท <span class="chat-badge" id="chatBadgeStaff" style="display:none">0</span></a></li>
+    <li>
+      <span class="user-chip">
+        <span id="userName"></span>
+        <span class="role-tag" id="roleTag"></span>
+      </span>
+    </li>
+    <li><a class="logout-link" onclick="doLogout()">ออกจากระบบ ✕</a></li>
+  </ul>
+</nav>
+
+<header>
+  <div class="hero-bike">🏍️💨</div>
+  <h1>ยินดีต้อนรับ, <em id="heroName"></em></h1>
+  <p id="heroDesc">มอเตอร์ไซค์คุณภาพดี พร้อมหมวกกันน็อกฟรี จองออนไลน์ รับรถได้ทันทีที่สาขาใกล้คุณ</p>
+</header>
+
+<div class="search-card" id="searchCard">
+  <div class="field">
+    <label for="filterType">ประเภทรถ</label>
+    <select id="filterType" onchange="loadBikes()">
+      <option value="all">ทั้งหมด</option>
+      <option value="family">แฟมิลี่</option>
+      <option value="classic">คลาสสิก</option>
+      <option value="scooter">สกู๊ตเตอร์</option>
+      <option value="sport">สปอร์ต</option>
+      <option value="adventure">แอดแวนเจอร์</option>
+      <option value="premium">พรีเมี่ยม</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="startDate">วันที่รับรถ</label>
+    <input type="date" id="startDate" onchange="updateAll()">
+  </div>
+  <div class="field">
+    <label for="endDate">วันที่คืนรถ</label>
+    <input type="date" id="endDate" onchange="updateAll()">
+  </div>
+  <button type="button" class="search-btn" onclick="loadBikes()">🔍 ค้นหารถ</button>
+</div>
+
+<main>
+  <section id="secBikes">
+    <h2>🛵 รถที่พร้อมให้เช่า</h2>
+    <div class="grid" id="bikeGrid"><div class="loading">กำลังโหลดรถ...</div></div>
+  </section>
+
+  <section id="secBookings" style="margin-top:56px;">
+    <h2>📋 การจองของฉัน</h2>
+    <div id="bookingList"></div>
+  </section>
+
+  <section id="secProfile" style="margin-top:56px; display:none;">
+    <h2>👤 ข้อมูลส่วนตัว</h2>
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">👤</div>
+        <div>
+          <div class="profile-name" id="profileDisplayName">-</div>
+          <div class="profile-email" id="profileDisplayEmail">-</div>
+        </div>
+      </div>
+      <div class="profile-status" id="profileStatus">
+        <span class="badge pending">ยังไม่ได้กรอกข้อมูล</span>
+      </div>
+    </div>
+
+    <form class="profile-form" id="profileForm" onsubmit="saveProfile(event)">
+      <h3>📝 แก้ไขข้อมูลส่วนตัว</h3>
+      <div class="form-row">
+        <div class="field">
+          <label for="pfFirstName">ชื่อจริง</label>
+          <input type="text" id="pfFirstName" placeholder="เช่น สมชาย" required>
+        </div>
+        <div class="field">
+          <label for="pfLastName">นามสกุล</label>
+          <input type="text" id="pfLastName" placeholder="เช่น ใจดี" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="pfAddress">ที่อยู่</label>
+        <input type="text" id="pfAddress" placeholder="เช่น 123 ถ.สุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110" required>
+      </div>
+      <div class="field">
+        <label for="pfPhone">เบอร์โทรศัพท์</label>
+        <input type="tel" id="pfPhone" placeholder="เช่น 081-234-5678" required>
+      </div>
+      <div class="field">
+        <label>หลักฐานสำคัญ (บัตรประชาชน หรือ พาสปอร์ต)</label>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="pfIdCard" accept="image/*" aria-label="อัพโหลดรูปบัตรประชาชนหรือพาสปอร์ต" onchange="handleIdUpload(event)" style="display:none">
+          <div class="upload-box" onclick="document.getElementById('pfIdCard').click()">
+            <div class="upload-icon" id="uploadIcon">📤</div>
+            <div class="upload-text" id="uploadText">คลิกเพื่ออัพรูปบัตรประชาชน หรือ พาสปอร์ต</div>
+            <div class="upload-hint">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 5MB</div>
+          </div>
+          <div class="upload-preview" id="uploadPreview" style="display:none">
+            <img id="previewImg" src="" alt="หลักฐาน">
+            <button type="button" class="remove-img-btn" onclick="removeIdImage()">✕ ลบรูป</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="saveProfileBtn">💾 บันทึกข้อมูล</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="secManage" style="margin-top:56px; display:none;">
+    <h2>🗂️ จัดการการจอง (ฝ่ายพนักงาน)</h2>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>รถ</th><th>ผู้เช่า</th><th>เบอร์โทร</th><th>ที่อยู่</th><th>รับรถ</th><th>คืนรถ</th><th>รวมเงิน</th><th>สถานะ</th><th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="manageBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="secRevenue" style="margin-top:56px; display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <h2>📊 สรุปรายได้รายเดือน / รายปี</h2>
+    </div>
+    <div class="rev-controls">
+      <div class="rev-tabs">
+        <button type="button" id="revTabMonth" class="active" onclick="setRevMode('month')">📅 รายเดือน</button>
+        <button type="button" id="revTabYear" onclick="setRevMode('year')">🗓️ รายปี</button>
+      </div>
+      <div class="rev-year-wrap">
+        <label for="revYear">เลือกปี</label>
+        <select id="revYear" onchange="loadRevenue()"></select>
+      </div>
+    </div>
+    <div class="stat-grid" id="revStats"></div>
+    <div id="revBody"></div>
+    <div class="demo-note">ℹ️ ข้อมูลบางส่วนเป็นข้อมูลตัวอย่าง (demo) รวมกับยอดการจองจริงจากฐานข้อมูล</div>
+  </section>
+
+  <section id="secStaffBikes" style="margin-top:56px; display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <h2>🏍️ รถของเรา</h2>
+      <button type="button" class="rent-btn" onclick="openBikeForm(null)">+ เพิ่มรถใหม่</button>
+    </div>
+    <div class="grid" id="staffBikeGrid"></div>
+  </section>
+
+  <section id="secNotifications" style="margin-top:56px; display:none;">
+    <h2>🔔 การแจ้งเตือน</h2>
+    <div id="notificationList"></div>
+  </section>
+
+  <section id="secChat" style="margin-top:56px; display:none;">
+    <h2>💬 แชทกับพนักงาน</h2>
+    <div class="chat-wrapper">
+      <div class="chat-box" id="chatBox">
+        <div class="chat-empty">ยังไม่มีข้อความ — เริ่มพิมพ์เพื่อสอบถามพนักงานได้เลย</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="พิมพ์ข้อความ..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button type="button" class="send-btn" onclick="sendChat()" aria-label="ส่งข้อความ">➤</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="secStaffChat" style="margin-top:56px; display:none;">
+    <h2>💬 แชทกับลูกค้า</h2>
+    <div class="chat-user-list" id="chatUserList"></div>
+    <div class="chat-wrapper" id="staffChatWrapper" style="display:none;">
+      <div class="chat-header-bar" id="chatHeaderBar">-</div>
+      <div class="chat-box" id="staffChatBox">
+        <div class="chat-empty">เลือกลูกค้าจากรายการด้านบนเพื่อดูข้อความ</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="staffChatInput" placeholder="พิมพ์ข้อความตอบ..." onkeydown="if(event.key==='Enter')sendStaffChat()">
+        <button type="button" class="send-btn" onclick="sendStaffChat()" aria-label="ส่งข้อความ">➤</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  © 2026 MOMO TRAVEL — เช่ารถมอเตอร์ไซค์กับโมโมะ | โทร 02-123-4567
+  <div class="footer-sub">Full-stack demo · อ้างอิงจาก <a href="https://github.com/Aphiradee-K/project-rent-motobike" target="_blank" rel="noopener">project-rent-motobike</a></div>
+</footer>
+</div>
+
+<!-- ================= BOOKING MODAL ================= -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="mTitle"></h3>
+    <div class="sub" id="mSub"></div>
+    <div class="field">
+      <label for="mStart">วันที่รับรถ</label>
+      <input type="date" id="mStart" onchange="calc()">
+    </div>
+    <div class="field">
+      <label for="mEnd">วันที่คืนรถ</label>
+      <input type="date" id="mEnd" onchange="calc()">
+    </div>
+    <div class="field">
+      <label for="mPhone">เบอร์โทรศัพท์</label>
+      <input type="tel" id="mPhone" placeholder="เช่น 081-234-5678">
+    </div>
+    <div class="summary">
+      <span>รวม <span id="mDays">0</span> วัน</span>
+      <span class="total" id="mTotal">฿0</span>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeModal()">ยกเลิก</button>
+      <button type="button" class="btn btn-primary" id="confirmBookingBtn" onclick="confirmBooking()">ยืนยันการจอง ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= BIKE DETAIL MODAL ================= -->
+<div class="overlay" id="detailOverlay">
+  <div class="detail-modal">
+    <button type="button" class="detail-close" onclick="closeDetail()">✕</button>
+    <div class="detail-img-wrap">
+      <img id="detailImg" src="" alt="">
+      <span class="badge-type" id="detailTypeBadge"></span>
+    </div>
+    <div class="detail-body">
+      <h2 id="detailName"></h2>
+      <div class="detail-price" id="detailPrice"></div>
+      <div class="detail-specs" id="detailSpecs"></div>
+      <div class="detail-grid" id="detailGrid"></div>
+      <div class="detail-features" id="detailFeatures"></div>
+      <div class="detail-availability" id="detailAvailability"></div>
+      <div class="modal-actions" id="detailActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= BIKE FORM MODAL (STAFF) ================= -->
+<div class="overlay" id="bikeFormOverlay">
+  <div class="modal" style="max-width:580px">
+    <h3 id="bikeFormTitle">🏍️ เพิ่มรถใหม่</h3>
+    <form id="bikeForm" onsubmit="saveBike(event)">
+      <div class="bike-form-grid">
+        <div class="field">
+          <label for="bfName">ชื่อรถ *</label>
+          <input type="text" id="bfName" placeholder="เช่น Honda Click 160" required>
+        </div>
+        <div class="field">
+          <label for="bfType">ประเภท *</label>
+          <select id="bfType">
+            <option value="family">แฟมิลี่</option>
+            <option value="classic">คลาสสิก</option>
+            <option value="scooter">สกู๊ตเตอร์</option>
+            <option value="sport">สปอร์ต</option>
+            <option value="adventure">แอดแวนเจอร์</option>
+            <option value="premium">พรีเมี่ยม</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="bfPrice">ราคา/วัน (บาท) *</label>
+          <input type="number" id="bfPrice" placeholder="300" min="0" required>
+        </div>
+        <div class="field">
+          <label for="bfImg">ลิงค์รูปภาพ</label>
+          <input type="text" id="bfImg" placeholder="https://... หรือ img/click.jpg">
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label for="bfSpecs">สเปค (คั่นด้วย comma)</label>
+          <input type="text" id="bfSpecs" placeholder="เช่น 157cc, อัตโนมัติ, ABS">
+        </div>
+      </div>
+      <h4 style="margin:16px 0 10px;font-size:.95rem;color:var(--dark)">📋 รายละเอียดเทคนิค</h4>
+      <div class="bike-form-grid">
+        <div class="field"><label for="bfCc">เครื่องยนต์</label><input type="text" id="bfCc" placeholder="เช่น 157cc"></div>
+        <div class="field"><label for="bfFuel">เชื้อเพลิง</label><input type="text" id="bfFuel" placeholder="เช่น แก๊สโซฮอล์ 91/95"></div>
+        <div class="field"><label for="bfMpg">ประหยัด</label><input type="text" id="bfMpg" placeholder="เช่น 45-50 กม./ลิตร"></div>
+        <div class="field"><label for="bfTopSpeed">ความเร็วสูงสุด</label><input type="text" id="bfTopSpeed" placeholder="เช่น 115 กม./ชม."></div>
+        <div class="field"><label for="bfSeat">ความสูงเบาะ</label><input type="text" id="bfSeat" placeholder="เช่น 778 มม."></div>
+        <div class="field"><label for="bfWeight">น้ำหนัก</label><input type="text" id="bfWeight" placeholder="เช่น 116 กก."></div>
+        <div class="field"><label for="bfStarter">สตาร์ท</label><input type="text" id="bfStarter" placeholder="เช่น มอเตอร์ไฟฟ้า"></div>
+        <div class="field"><label for="bfBrake">เบรก</label><input type="text" id="bfBrake" placeholder="เช่น ดิสก์หน้า / ดรัมหลัง"></div>
+        <div class="field"><label for="bfColor">สีที่มี</label><input type="text" id="bfColor" placeholder="เช่น แดง / ขาว / ดำ"></div>
+        <div class="field" style="grid-column:1/-1"><label for="bfFeature">ฟีเจอร์เด่น (คั่นด้วย comma)</label><input type="text" id="bfFeature" placeholder="เช่น Smart Key, ABS, LED รอบคัน"></div>
+      </div>
+      <div class="modal-actions" style="margin-top:18px">
+        <button type="button" class="btn btn-ghost" onclick="closeBikeForm()">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary" id="saveBikeBtn">💾 บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
