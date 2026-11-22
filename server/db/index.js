@@ -12,7 +12,9 @@ const demoRevenue = require("./demoRevenue");
 //   - not set           -> local SQLite file (handy for development)
 // Both expose the same async `db.prepare(sql).get/all/run()` interface.
 // ---------------------------------------------------------------------------
-const usePostgres = Boolean(process.env.DATABASE_URL);
+// Accept both the canonical name and the legacy short name used in this project's Vercel env.
+const databaseUrl = process.env.DATABASE_URL || process.env.database;
+const usePostgres = Boolean(databaseUrl);
 
 let pool = null;
 let poolError = null;
@@ -21,7 +23,7 @@ let sqliteReady = false;
 let dbFile;
 
 if (usePostgres) {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = databaseUrl;
   try {
     const { Pool } = require("pg");
 
@@ -371,7 +373,7 @@ function init() {
     initPromise = (async () => {
       if (usePostgres) {
         if (poolError) {
-          throw new Error("DATABASE_URL ไม่ถูกต้อง: " + poolError.message);
+          throw new Error("DATABASE_URL (หรือ database) ไม่ถูกต้อง: " + poolError.message);
         }
 
         await pool.query(SCHEMA_POSTGRES);
@@ -390,7 +392,7 @@ function init() {
         // silently losing data (and instead of crashing at module load time).
         if (process.env.VERCEL) {
           throw new Error(
-            "DATABASE_URL is required on Vercel. ไปที่ Vercel > Settings > Environment Variables แล้วเพิ่ม DATABASE_URL จาก Neon (ใช้ตัวที่มี -pooler-)"
+            "DATABASE_URL (หรือ database) is required on Vercel. ไปที่ Vercel > Settings > Environment Variables แล้วเพิ่ม DATABASE_URL จาก Neon (ใช้ตัวที่มี -pooler-)"
           );
         }
 

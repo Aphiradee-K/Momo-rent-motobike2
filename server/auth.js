@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { db } = require("./db");
 
-const JWT_SECRET = process.env.JWT_SECRET || "momo-travel-dev-secret-change-me";
+const JWT_SECRET = process.env.JWT_SECRET || process.env.secret || "momo-travel-dev-secret-change-me";
 const TOKEN_TTL = "7d";
 
 function publicUser(row) {

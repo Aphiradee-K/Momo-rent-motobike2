@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 require("dotenv").config();
 
-const usePostgres = Boolean(process.env.DATABASE_URL);
+const usePostgres = Boolean(process.env.DATABASE_URL || process.env.database);
 
 async function reset() {
   if (!usePostgres) {

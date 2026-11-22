@@ -52,7 +52,7 @@ app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     service: "momo-travel-api",
-    storage: process.env.DATABASE_URL ? "postgres" : (process.env.VERCEL ? "ephemeral" : "local"),
+    storage: (process.env.DATABASE_URL || process.env.database) ? "postgres" : (process.env.VERCEL ? "ephemeral" : "local"),
     time: new Date().toISOString(),
   });
 });
