@@ -97,8 +97,8 @@ npm start
 | ตัวแปร | ค่าเริ่มต้น | คำอธิบาย |
 |--------|-------------|----------|
 | `PORT` | `3000` | พอร์ตของเซิร์ฟเวอร์ |
-| `JWT_SECRET` | — | Secret สำหรับเซ็น token (ต้องตั้งใน production) |
-| `DATABASE_URL` | — | Connection string ของ PostgreSQL (ใช้บน Vercel) — แนะนำตัวที่เป็น **pooler** |
+| `JWT_SECRET` | — | Secret สำหรับเซ็น token (ต้องตั้งใน production; รองรับชื่อสั้น `secret` ด้วย) |
+| `DATABASE_URL` | — | Connection string ของ PostgreSQL (ใช้บน Vercel) — แนะนำตัวที่เป็น **pooler** (โค้ดรองรับชื่อสั้น `database` ที่ตั้งไว้ใน Vercel เดิมด้วย) |
 | `PGPOOL_MAX` | `5` | จำนวน connection สูงสุดต่อ instance |
 | `DB_FILE` | `data/momo.db` | ใช้เฉพาะตอนไม่ได้ตั้ง `DATABASE_URL` (SQLite fallback) |
 
