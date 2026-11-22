@@ -14,58 +14,53 @@ const demoRevenue = require("./demoRevenue");
 // ---------------------------------------------------------------------------
 const usePostgres = Boolean(process.env.DATABASE_URL);
 
-// On Vercel, /tmp is ephemeral — fail fast instead of silently losing data.
-if (!usePostgres && process.env.VERCEL) {
-  throw new Error(
-    "DATABASE_URL is required when running on Vercel. Set it to a PostgreSQL connection string (e.g. Neon/Supabase)."
-  );
-}
-
 let pool = null;
+let poolError = null;
 let sqlite = null;
+let sqliteReady = false;
 let dbFile;
 
 if (usePostgres) {
-  const { Pool } = require("pg");
   const connectionString = process.env.DATABASE_URL;
-
-  let ssl;
   try {
-    const url = new URL(connectionString);
-    if (!["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
+    const { Pool } = require("pg");
+
+    let ssl;
+    try {
+      const url = new URL(connectionString);
+      if (!["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
+        ssl = { rejectUnauthorized: false };
+      }
+    } catch {
       ssl = { rejectUnauthorized: false };
     }
-  } catch {
-    ssl = { rejectUnauthorized: false };
+
+    pool = new Pool({
+      connectionString,
+      ssl,
+      max: Number(process.env.PGPOOL_MAX) || 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 10000,
+    });
+
+    // Mask credentials for logs.
+    dbFile = (() => {
+      try {
+        const u = new URL(connectionString);
+        return `postgres://${u.hostname}${u.port ? ":" + u.port : ""}${u.pathname}`;
+      } catch {
+        return "PostgreSQL (DATABASE_URL)";
+      }
+    })();
+  } catch (err) {
+    poolError = err;
+    dbFile = "PostgreSQL (DATABASE_URL)";
   }
-
-  pool = new Pool({
-    connectionString,
-    ssl,
-    max: Number(process.env.PGPOOL_MAX) || 5,
-    idleTimeoutMillis: 10000,
-    connectionTimeoutMillis: 10000,
-  });
-
-  // Mask credentials for logs.
-  dbFile = (() => {
-    try {
-      const u = new URL(connectionString);
-      return `postgres://${u.hostname}${u.port ? ":" + u.port : ""}${u.pathname}`;
-    } catch {
-      return "PostgreSQL (DATABASE_URL)";
-    }
-  })();
 } else {
-  const { DatabaseSync } = require("node:sqlite");
   dbFile = path.resolve(
     process.cwd(),
     process.env.DB_FILE || (process.env.VERCEL ? "/tmp/momo.db" : "data/momo.db")
   );
-  fs.mkdirSync(path.dirname(dbFile), { recursive: true });
-  sqlite = new DatabaseSync(dbFile);
-  sqlite.exec("PRAGMA journal_mode = WAL;");
-  sqlite.exec("PRAGMA foreign_keys = ON;");
 }
 
 // ---------------------------------------------------------------------------
@@ -375,6 +370,10 @@ function init() {
   if (!initPromise) {
     initPromise = (async () => {
       if (usePostgres) {
+        if (poolError) {
+          throw new Error("DATABASE_URL ไม่ถูกต้อง: " + poolError.message);
+        }
+
         await pool.query(SCHEMA_POSTGRES);
 
         // Prevent multiple serverless instances from seeding at the same time.
@@ -387,6 +386,23 @@ function init() {
           client.release();
         }
       } else {
+        // On Vercel, /tmp is ephemeral — fail with a clear message instead of
+        // silently losing data (and instead of crashing at module load time).
+        if (process.env.VERCEL) {
+          throw new Error(
+            "DATABASE_URL is required on Vercel. ไปที่ Vercel > Settings > Environment Variables แล้วเพิ่ม DATABASE_URL จาก Neon (ใช้ตัวที่มี -pooler-)"
+          );
+        }
+
+        if (!sqliteReady) {
+          const { DatabaseSync } = require("node:sqlite");
+          fs.mkdirSync(path.dirname(dbFile), { recursive: true });
+          sqlite = new DatabaseSync(dbFile);
+          sqlite.exec("PRAGMA journal_mode = WAL;");
+          sqlite.exec("PRAGMA foreign_keys = ON;");
+          sqliteReady = true;
+        }
+
         sqlite.exec(SCHEMA_SQLITE);
         await seedData();
       }
