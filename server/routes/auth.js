@@ -3,10 +3,11 @@ const bcrypt = require("bcryptjs");
 const { db } = require("../db");
 const { publicUser, signToken, authRequired } = require("../auth");
 const { isValidEmail, isValidPhone, cleanText } = require("../validate");
+const asyncHandler = require("../asyncHandler");
 
 const router = express.Router();
 
-router.post("/register", (req, res) => {
+router.post("/register", asyncHandler(async (req, res) => {
   const firstName = cleanText(req.body.firstName, 80);
   const lastName = cleanText(req.body.lastName, 80);
   const email = cleanText(req.body.email, 160).toLowerCase();
@@ -21,35 +22,35 @@ router.post("/register", (req, res) => {
   if (!address) return res.status(400).json({ error: "กรุณากรอกที่อยู่" });
   if (!isValidPhone(phone)) return res.status(400).json({ error: "เบอร์โทรศัพท์ไม่ถูกต้อง" });
 
-  const exists = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  const exists = await db.prepare("SELECT id FROM users WHERE email = ?").get(email);
   if (exists) return res.status(409).json({ error: "อีเมลนี้ถูกใช้แล้ว" });
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO users (first_name, last_name, email, password_hash, role, address, phone, id_card_img)
     VALUES (?, ?, ?, ?, 'customer', ?, ?, ?)
   `).run(firstName, lastName, email, bcrypt.hashSync(password, 10), address, phone, idCardImg);
 
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(Number(result.lastInsertRowid));
+  const user = await db.prepare("SELECT * FROM users WHERE id = ?").get(Number(result.lastInsertRowid));
   res.status(201).json({ token: signToken(user), user: publicUser(user) });
-});
+}));
 
-router.post("/login", (req, res) => {
+router.post("/login", asyncHandler(async (req, res) => {
   const email = cleanText(req.body.email, 160).toLowerCase();
   const password = String(req.body.password || "");
   if (!email || !password) return res.status(400).json({ error: "กรุณากรอกอีเมลและรหัสผ่าน" });
 
-  const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+  const user = await db.prepare("SELECT * FROM users WHERE email = ?").get(email);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" });
   }
   res.json({ token: signToken(user), user: publicUser(user) });
+}));
+
+router.get("/me", authRequired, (_req, res) => {
+  res.json({ user: publicUser(_req.user) });
 });
 
-router.get("/me", authRequired, (req, res) => {
-  res.json({ user: publicUser(req.user) });
-});
-
-router.put("/profile", authRequired, (req, res) => {
+router.put("/profile", authRequired, asyncHandler(async (req, res) => {
   const firstName = cleanText(req.body.firstName, 80);
   const lastName = cleanText(req.body.lastName, 80);
   const address = cleanText(req.body.address, 300);
@@ -61,14 +62,14 @@ router.put("/profile", authRequired, (req, res) => {
   if (!firstName || !lastName) return res.status(400).json({ error: "กรุณากรอกชื่อและนามสกุล" });
   if (!isValidPhone(phone)) return res.status(400).json({ error: "เบอร์โทรศัพท์ไม่ถูกต้อง" });
 
-  db.prepare(`
+  await db.prepare(`
     UPDATE users
     SET first_name = ?, last_name = ?, address = ?, phone = ?, id_card_img = ?
     WHERE id = ?
   `).run(firstName, lastName, address, phone, idCardImg, req.user.id);
 
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+  const user = await db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   res.json({ user: publicUser(user) });
-});
+}));
 
 module.exports = router;

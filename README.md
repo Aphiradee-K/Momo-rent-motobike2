@@ -27,7 +27,8 @@
 
 ### เทคนิค
 - REST API + JWT Authentication + Role-based access (customer / staff)
-- SQLite เป็นฐานข้อมูลจริง (ไฟล์ `data/momo.db`) ใช้ `node:sqlite` ในตัว Node.js — ไม่ต้องติดตั้ง native module
+- PostgreSQL เป็นฐานข้อมูลหลัก (ตั้งค่า `DATABASE_URL`) ข้อมูลถาวรได้แม้รันบน Vercel
+- รันในเครื่องโดยไม่ตั้ง `DATABASE_URL` จะใช้ SQLite (`data/momo.db`) แทนได้สบาย ๆ
 - อัปโหลดไฟล์ด้วย `multer` เก็บไว้ที่ `public/uploads/`
 - Frontend เป็น Vanilla HTML/CSS/JS SPA (ไม่ต้อง build)
 
@@ -39,11 +40,11 @@
 |----------|------------|
 | Frontend | HTML5, CSS3, Vanilla JavaScript (SPA) |
 | Backend  | Node.js, Express 4 |
-| Database | SQLite via built-in `node:sqlite` (`DatabaseSync`) |
+| Database | PostgreSQL (`pg`) — SQLite fallback via `node:sqlite` |
 | Auth     | JSON Web Token (`jsonwebtoken`) + `bcryptjs` |
 | Upload   | `multer` (JPG/PNG สูงสุด 5 MB) |
 
-> **ต้องใช้ Node.js ≥ 22.5** เพราะใช้โมดูล `node:sqlite` ที่มีมาในตัว (ทดสอบบน Node v26)
+> **ต้องใช้ Node.js ≥ 22.5** (สำหรับ SQLite fallback) แนะนำ Node 24.x — ทดสอบบน Node v26
 
 ---
 
@@ -53,7 +54,7 @@
 # 1) ติดตั้ง dependencies
 npm install
 
-# 2) (ทางเลือก) สร้างไฟล์ .env จากตัวอย่าง
+# 2) สร้างไฟล์ .env จากตัวอย่าง แล้วใส่ DATABASE_URL + JWT_SECRET
 copy .env.example .env        # Windows
 # cp .env.example .env        # macOS / Linux
 
@@ -63,8 +64,11 @@ npm start
 
 เปิดเบราว์เซอร์ที่ **http://localhost:3000**
 
-ฐานข้อมูลจะถูกสร้างและ seed ข้อมูลตัวอย่างอัตโนมัติเมื่อรันครั้งแรก
+ฐานข้อมูลจะถูกสร้าง schema และ seed ข้อมูลตัวอย่างอัตโนมัติเมื่อรันครั้งแรก
 (บัญชีทดลอง, รถ 20 คัน, รายได้ย้อนหลังปี 2024–2026, การจองตัวอย่าง 2 รายการ)
+
+ถ้าไม่ใส่ `DATABASE_URL` ระบบจะใช้ SQLite ที่ `data/momo.db` (เหมาะสำหรับลองในเครื่อง)
+ถ้าใส่ `DATABASE_URL` ระบบจะใช้ PostgreSQL และเก็บข้อมูลถาวรบน Vercel
 
 ### Scripts
 
@@ -93,8 +97,10 @@ npm start
 | ตัวแปร | ค่าเริ่มต้น | คำอธิบาย |
 |--------|-------------|----------|
 | `PORT` | `3000` | พอร์ตของเซิร์ฟเวอร์ |
-| `JWT_SECRET` | — | Secret สำหรับเซ็น token (ควรเปลี่ยนใน production) |
-| `DB_FILE` | `data/momo.db` | ตำแหน่งไฟล์ฐานข้อมูล (relative จาก root โปรเจกต์) |
+| `JWT_SECRET` | — | Secret สำหรับเซ็น token (ต้องตั้งใน production) |
+| `DATABASE_URL` | — | Connection string ของ PostgreSQL (ใช้บน Vercel) — แนะนำตัวที่เป็น **pooler** |
+| `PGPOOL_MAX` | `5` | จำนวน connection สูงสุดต่อ instance |
+| `DB_FILE` | `data/momo.db` | ใช้เฉพาะตอนไม่ได้ตั้ง `DATABASE_URL` (SQLite fallback) |
 
 ---
 
@@ -107,8 +113,9 @@ momomo/
 │   ├── auth.js             # JWT sign/verify, attachUser, authRequired, staffOnly
 │   ├── serializers.js      # แปลง row → JSON ที่ frontend ใช้
 │   ├── validate.js         # ตรวจอีเมล/เบอร์โทร/วันที่, helpers
+│   ├── asyncHandler.js     # จับ error จาก async route ส่งให้ Express
 │   ├── db/
-│   │   ├── index.js        # schema + seed + export db
+│   │   ├── index.js        # schema + seed + PostgreSQL/SQLite adapter
 │   │   ├── bikes.js        # ข้อมูลรถตั้งต้น 20 คัน
 │   │   ├── demoRevenue.js  # รายได้ย้อนหลังสำหรับกราฟ
 │   │   ├── seed.js         # npm run seed
@@ -127,7 +134,7 @@ momomo/
 │   ├── app.js              # logic ทั้งหมด + API client
 │   ├── img/                # รูปรถ
 │   └── uploads/            # ไฟล์ที่ผู้ใช้อัปโหลด
-├── data/momo.db            # SQLite database (สร้างอัตโนมัติ)
+├── data/momo.db            # SQLite fallback (สร้างอัตโนมัติถ้าไม่ตั้ง DATABASE_URL)
 ├── .env.example
 └── package.json
 ```
@@ -197,7 +204,8 @@ momomo/
 
 ## 🗄️ หมายเหตุด้านฐานข้อมูล
 
-- ไฟล์ฐานข้อมูล: `data/momo.db` (เปิด `WAL` mode)
+- ถ้าตั้ง `DATABASE_URL` → ใช้ PostgreSQL ตารางถูกสร้างอัตโนมัติ พร้อม seed แบบมี advisory lock ไม่ให้หลาย instance seed พร้อมกัน
+- ถ้าไม่ตั้ง → ใช้ไฟล์ `data/momo.db` (เปิด `WAL` mode)
 - ตาราง: `users`, `bikes`, `bookings`, `messages`, `demo_revenue`
 - `demo_revenue` เก็บรายได้ย้อนหลังเพื่อให้กราฟดูสมจริง ส่วนรายได้จากการจองจริงจะถูกบวกเพิ่มตามเดือนของ `start_date`
 - การลบรถจะถูกบล็อกหากยังมี booking อ้างอิงอยู่ (`ON DELETE RESTRICT`)
@@ -213,28 +221,47 @@ git commit -m "MOMO TRAVEL full-stack"
 git push origin master
 ```
 
-### Vercel
+### Vercel + PostgreSQL (แนะนำ)
+
 โปรเจกต์นี้มีไฟล์พร้อม deploy แล้ว:
 - `api/index.js` — entry point สำหรับ Vercel Serverless Function
-- `vercel.json` — rewrite ทุก request เข้า Express + ตั้ง `DB_FILE=/tmp/momo.db` และ `UPLOAD_DIR=/tmp/uploads`
+- `vercel.json` — rewrite ทุก request เข้า Express + ตั้ง `UPLOAD_DIR=/tmp/uploads`
 - `server/index.js` จะ `listen` เฉพาะตอนรัน `npm start` (ไม่ listen บน Vercel)
 
-ขั้นตอน:
+**1) สร้างฐานข้อมูล Neon (ฟรี)**
+1. ไปที่ [neon.tech](https://neon.tech) → Sign up ด้วย GitHub
+2. Create project → ตั้งชื่อ เช่น `momo-travel` → เลือก Region ที่ใกล้ผู้ใช้ (เช่น Singapore ถ้ามี)
+3. ในหน้า Project → **Connection strings** → เลือก branch `main`, database `neondb`, role `neon_owner`
+4. เปิด **Pooled connection** แล้วCopy connection string จะได้หน้าตาแบบนี้:
+   ```
+   postgresql://neondb_owner:xxxx@ep-xxx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+   ```
+
+**2) ตั้ง Environment Variable ใน Vercel**
+
+เข้า Project → **Settings → Environment Variables** เพิ่ม:
+
+| ตัวแปร | ค่า | หมายเหตุ |
+|--------|-----|----------|
+| `DATABASE_URL` | connection string จาก Neon | เลือกให้ครบ Production / Preview / Development |
+| `JWT_SECRET` | สุ่มสตริงยาว ๆ | จำเป็น — เปลี่ยนจากค่าตั้งต้น |
+
+สร้าง random secret ได้ด้วย: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+
+**3) Deploy ใหม่**
+
 ```bash
-npm i -g vercel
-vercel login
-vercel --prod
+git add -A
+git commit -m "Use PostgreSQL for persistent storage"
+git push origin master
 ```
 
-หรือ import repo จาก GitHub ที่ [vercel.com/new](https://vercel.com/new) แล้วตั้ง Environment Variable:
-| ตัวแปร | ค่า |
-|--------|-----|
-| `JWT_SECRET` | สุ่มสตริงยาว ๆ (จำเป็น) |
+หรือ `vercel --prod` ถ้าใช้ CLI อยู่ หลัง deploy ให้ลองสมัครสมาชิกแล้ว refresh หรือเปิดอีก browser — ข้อมูลจะยังอยู่ครับ
 
-> **ข้อจำกัดสำคัญบน Vercel:** ระบบไฟล์ของ Serverless เป็นแบบชั่วคราว
-> ฐานข้อมูล SQLite (`/tmp/momo.db`) และรูปที่อัปโหลด (`/tmp/uploads`) จะถูกรีเซ็ตเมื่อ instance ใหม่ถูกสร้าง
-> จึงเหมาะสำหรับ **เดโม/พรีวิว** เท่านั้น ถ้าต้องการข้อมูลถาวรควรใช้ Postgres (Neon/Supabase) + Blob storage
-> หรือ deploy บน Railway/Render/Fly.io ที่มี persistent disk
+> ตรวจสอบได้ที่ `https://<your-app>.vercel.app/api/health` ควรเห็น `"storage": "postgres"`
+
+> **ข้อจำกัดที่เหลือ:** รูปบัตรประชาชนยังอัปโหลดลง `/tmp/uploads` ( ephemeral ) ของ Vercel
+> ข้อมูลในตาราง `users` ถาวรแล้ว แต่ไฟล์รูปอาจหายตอน instance ใหม่ ถ้าต้องการให้รูปถาวรต้องใช้ Vercel Blob / S3 เพิ่มเติม
 
 ## 📝 Credit
 

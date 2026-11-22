@@ -2,7 +2,7 @@ const path = require("node:path");
 const express = require("express");
 require("dotenv").config();
 
-const { dbFile } = require("./db");
+const { init } = require("./db");
 const { attachUser } = require("./auth");
 
 const app = express();
@@ -15,6 +15,16 @@ const UPLOAD_DIR = path.resolve(
 app.disable("x-powered-by");
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false, limit: "2mb" }));
+
+// Make sure the database (schema + seed) is ready before handling any request.
+app.use(async (_req, _res, next) => {
+  try {
+    await init();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Tiny request logger (skip static assets)
 app.use((req, res, next) => {
@@ -42,7 +52,7 @@ app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     service: "momo-travel-api",
-    storage: process.env.VERCEL ? "ephemeral" : "local",
+    storage: process.env.DATABASE_URL ? "postgres" : (process.env.VERCEL ? "ephemeral" : "local"),
     time: new Date().toISOString(),
   });
 });
@@ -68,4 +78,4 @@ app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json({ error: err.message || "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์" });
 });
 
-module.exports = { app, dbFile, PUBLIC_DIR, UPLOAD_DIR };
+module.exports = { app, PUBLIC_DIR, UPLOAD_DIR };

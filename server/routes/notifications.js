@@ -3,14 +3,15 @@ const { db } = require("../db");
 const { authRequired } = require("../auth");
 const { BOOKING_SELECT } = require("../serializers");
 const { daysBetween, todayISO, isISODate } = require("../validate");
+const asyncHandler = require("../asyncHandler");
 
 const router = express.Router();
 
-router.get("/", authRequired, (req, res) => {
+router.get("/", authRequired, asyncHandler(async (req, res) => {
   const isStaff = req.user.role === "staff";
   const rows = isStaff
-    ? db.prepare(BOOKING_SELECT + " WHERE b.status IN ('pending','active')").all()
-    : db.prepare(BOOKING_SELECT + " WHERE b.user_id = ? AND b.status IN ('pending','active')").all(req.user.id);
+    ? await db.prepare(BOOKING_SELECT + " WHERE b.status IN ('pending','active')").all()
+    : await db.prepare(BOOKING_SELECT + " WHERE b.user_id = ? AND b.status IN ('pending','active')").all(req.user.id);
 
   const today = todayISO();
   const items = [];
@@ -35,6 +36,6 @@ router.get("/", authRequired, (req, res) => {
 
   items.sort((a, b) => a.daysLeft - b.daysLeft);
   res.json({ notifications: items, count: items.length });
-});
+}));
 
 module.exports = router;

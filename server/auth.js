@@ -38,10 +38,14 @@ function readToken(req) {
 }
 
 // Attaches req.user when a valid bearer token is present (never rejects).
-function attachUser(req, _res, next) {
+async function attachUser(req, _res, next) {
   const payload = readToken(req);
   if (payload) {
-    req.user = db.prepare("SELECT * FROM users WHERE id = ?").get(payload.sub) || null;
+    try {
+      req.user = (await db.prepare("SELECT * FROM users WHERE id = ?").get(payload.sub)) || null;
+    } catch (err) {
+      return next(err);
+    }
   }
   next();
 }

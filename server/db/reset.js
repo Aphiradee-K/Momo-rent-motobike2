@@ -4,9 +4,31 @@ const fs = require("node:fs");
 const path = require("node:path");
 require("dotenv").config();
 
-const dbFile = path.resolve(process.cwd(), process.env.DB_FILE || "data/momo.db");
-for (const f of [dbFile, dbFile + "-wal", dbFile + "-shm"]) {
-  if (fs.existsSync(f)) fs.rmSync(f);
+const usePostgres = Boolean(process.env.DATABASE_URL);
+
+async function reset() {
+  if (!usePostgres) {
+    const file = path.resolve(process.cwd(), process.env.DB_FILE || "data/momo.db");
+    for (const f of [file, file + "-wal", file + "-shm"]) {
+      if (fs.existsSync(f)) fs.rmSync(f);
+    }
+  }
+
+  // Load index.js only after old SQLite files are gone so it opens a fresh file.
+  const { db, init, dbFile } = require("./index");
+
+  if (usePostgres) {
+    await db.query(`
+      TRUNCATE TABLE messages, bookings, demo_revenue, bikes, users
+      RESTART IDENTITY CASCADE
+    `);
+  }
+
+  await init();
+  console.log("\nDatabase reset complete: " + dbFile);
 }
-require("./index");
-console.log("\nDatabase reset complete: " + dbFile);
+
+reset().catch((err) => {
+  console.error("Reset failed:", err);
+  process.exitCode = 1;
+});

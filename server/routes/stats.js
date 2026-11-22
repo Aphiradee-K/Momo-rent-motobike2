@@ -1,34 +1,35 @@
 const express = require("express");
 const { db } = require("../db");
 const { staffOnly } = require("../auth");
+const asyncHandler = require("../asyncHandler");
 
 const router = express.Router();
 
-router.get("/summary", staffOnly, (_req, res) => {
-  const total = db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE status <> 'cancelled'").get().n;
-  const pending = db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE status = 'pending'").get().n;
-  const active = db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE status = 'active'").get().n;
-  const revenue = db.prepare("SELECT COALESCE(SUM(total), 0) AS n FROM bookings WHERE status <> 'cancelled'").get().n;
-  const bikes = db.prepare("SELECT COUNT(*) AS n FROM bikes").get().n;
-  const customers = db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'customer'").get().n;
+router.get("/summary", staffOnly, asyncHandler(async (_req, res) => {
+  const total = (await db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE status <> 'cancelled'").get()).n;
+  const pending = (await db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE status = 'pending'").get()).n;
+  const active = (await db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE status = 'active'").get()).n;
+  const revenue = (await db.prepare("SELECT COALESCE(SUM(total), 0) AS n FROM bookings WHERE status <> 'cancelled'").get()).n;
+  const bikes = (await db.prepare("SELECT COUNT(*) AS n FROM bikes").get()).n;
+  const customers = (await db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'customer'").get()).n;
 
   res.json({ summary: { total, pending, active, revenue, bikes, customers } });
-});
+}));
 
-router.get("/revenue", staffOnly, (req, res) => {
+router.get("/revenue", staffOnly, asyncHandler(async (req, res) => {
   const requested = Number(req.query.year);
   const currentYear = new Date().getFullYear();
   const year = Number.isInteger(requested) ? requested : currentYear;
 
-  const demoRows = db.prepare("SELECT year, month, amount FROM demo_revenue").all();
-  const bookingRows = db.prepare(`
+  const demoRows = await db.prepare("SELECT year, month, amount FROM demo_revenue").all();
+  const bookingRows = await db.prepare(`
     SELECT CAST(substr(start_date, 1, 4) AS INTEGER) AS year,
            CAST(substr(start_date, 6, 2) AS INTEGER) AS month,
            SUM(total) AS amount,
            COUNT(*) AS count
     FROM bookings
     WHERE status <> 'cancelled'
-    GROUP BY year, month
+    GROUP BY CAST(substr(start_date, 1, 4) AS INTEGER), CAST(substr(start_date, 6, 2) AS INTEGER)
   `).all();
 
   const years = [...new Set([
@@ -75,6 +76,6 @@ router.get("/revenue", staffOnly, (req, res) => {
       return { year: y, total: sum, average: Math.round(sum / 12) };
     }),
   });
-});
+}));
 
 module.exports = router;
