@@ -257,7 +257,8 @@ const db = {
         if (usePostgres) {
           let final = sql.trim().replace(/;+$/, "");
           if (/^INSERT\b/i.test(final) && !/\bRETURNING\b/i.test(final)) {
-            final += " RETURNING id";
+            // RETURNING * works for every table (demo_revenue has no `id` column).
+            final += " RETURNING *";
           }
           const { text, values } = toPostgres(final, params);
           const res = await pool.query(text, values);
